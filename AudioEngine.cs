@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace SpeakerSync
@@ -18,8 +19,28 @@ namespace SpeakerSync
         private readonly List<WaveOutEvent> players = new();
         private readonly List<DelayedWaveProvider> delayedProviders = new();
         private readonly Dictionary<int, DelayedWaveProvider> delayedProvidersByDevice = new();
+        private readonly Dictionary<int, MMDevice> endpointVolumes = new();
 
         public WaveFormat? Format => waveIn?.WaveFormat;
+
+        public void RefreshOutputEndpointMappings()
+        {
+            try
+            {
+                var enumerator = new MMDeviceEnumerator();
+                var devices = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+
+                endpointVolumes.Clear();
+                for (int i = 0; i < devices.Count; i++)
+                {
+                    endpointVolumes[i] = devices[i];
+                }
+            }
+            catch
+            {
+                endpointVolumes.Clear();
+            }
+        }
 
         public string[] GetInputDevices()
         {
@@ -95,6 +116,40 @@ namespace SpeakerSync
             players.Clear();
             delayedProviders.Clear();
             delayedProvidersByDevice.Clear();
+            endpointVolumes.Clear();
+        }
+
+        public bool TryGetSystemOutputVolume(int deviceNumber, out float volume)
+        {
+            volume = 0f;
+            if (!endpointVolumes.TryGetValue(deviceNumber, out var endpoint))
+                return false;
+
+            try
+            {
+                volume = endpoint.AudioEndpointVolume.MasterVolumeLevelScalar;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public bool TrySetSystemOutputVolume(int deviceNumber, float volume)
+        {
+            if (!endpointVolumes.TryGetValue(deviceNumber, out var endpoint))
+                return false;
+
+            try
+            {
+                endpoint.AudioEndpointVolume.MasterVolumeLevelScalar = Math.Clamp(volume, 0f, 1f);
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         // Runtime control methods
@@ -107,7 +162,9 @@ namespace SpeakerSync
         public void SetOutputVolume(int deviceNumber, float volume)
         {
             if (!delayedProvidersByDevice.TryGetValue(deviceNumber, out var provider)) return;
-            provider.Volume = Math.Clamp(volume, 0f, 2f);
+            float boundedVolume = Math.Clamp(volume, 0f, 2f);
+            provider.Volume = boundedVolume;
+            TrySetSystemOutputVolume(deviceNumber, boundedVolume);
         }
 
         public void RefreshDevices()

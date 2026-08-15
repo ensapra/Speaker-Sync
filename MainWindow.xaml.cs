@@ -55,6 +55,7 @@ namespace SpeakerSync
         private long? expectedBeatTimestamp;
         private long? nextExpectedBeatTimestamp;
         private DispatcherTimer? calibrationTimer;
+        private DispatcherTimer? systemVolumeSyncTimer;
 
         public MainWindow()
         {
@@ -68,8 +69,49 @@ namespace SpeakerSync
             PopulateDeviceLists();
             SampleRateCombo.ItemsSource = new int[] { 44100, 48000, 96000 };
             SampleRateCombo.SelectedIndex = 0;
+            engine.RefreshOutputEndpointMappings();
+            StartSystemVolumeMonitoring();
             ApplySavedSettings();
             Dispatcher.BeginInvoke(new Action(() => AutoStart()), System.Windows.Threading.DispatcherPriority.Background);
+        }
+
+        private void StartSystemVolumeMonitoring()
+        {
+            systemVolumeSyncTimer?.Stop();
+            systemVolumeSyncTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(250)
+            };
+
+            systemVolumeSyncTimer.Tick += (_, __) =>
+            {
+                if (!IsAudioRunning())
+                {
+                    return;
+                }
+
+                foreach (StackPanel sp in OutputsPanel.Children)
+                {
+                    if (sp.Children.Count >= 4 && sp.Children[2] is Slider slider && slider.Tag is int deviceIndex)
+                    {
+                        if (engine.TryGetSystemOutputVolume(deviceIndex, out float systemVolume))
+                        {
+                            var desiredPercent = Math.Clamp((int)Math.Round(systemVolume * 100.0f), 0, 200);
+                            if (Math.Abs(slider.Value - desiredPercent) > 0.5)
+                            {
+                                slider.Value = desiredPercent;
+                            }
+
+                            if (sp.Children[3] is TextBox tb)
+                            {
+                                tb.Text = desiredPercent.ToString();
+                            }
+                        }
+                    }
+                }
+            };
+
+            systemVolumeSyncTimer.Start();
         }
 
         private bool IsAudioRunning()
@@ -433,6 +475,26 @@ namespace SpeakerSync
             }
         }
 
+        private void SyncOutputVolumeFromSystem(int deviceIndex)
+        {
+            if (engine.TryGetSystemOutputVolume(deviceIndex, out float systemVolume))
+            {
+                int volumePercent = (int)Math.Round(systemVolume * 100.0f);
+                foreach (StackPanel sp in OutputsPanel.Children)
+                {
+                    if (sp.Children.Count >= 4 && sp.Children[2] is Slider slider && slider.Tag is int tagDevice && tagDevice == deviceIndex)
+                    {
+                        slider.Value = Math.Clamp(volumePercent, 0, 200);
+                        if (sp.Children[3] is TextBox tb)
+                        {
+                            tb.Text = volumePercent.ToString();
+                        }
+                        break;
+                    }
+                }
+            }
+        }
+
         private void VolumeTextBox_LostFocus(object? sender, RoutedEventArgs e)
         {
             if (sender is TextBox tb && tb.Tag is string tag && tag.StartsWith("vol_tb_"))
@@ -520,6 +582,17 @@ namespace SpeakerSync
             }
         }
 
+        private void RefreshOutputDeviceVolumesFromSystem()
+        {
+            foreach (StackPanel sp in OutputsPanel.Children)
+            {
+                if (sp.Children.Count >= 4 && sp.Children[2] is Slider slider && slider.Tag is int deviceIndex)
+                {
+                    SyncOutputVolumeFromSystem(deviceIndex);
+                }
+            }
+        }
+
         private void SampleRateCombo_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (!restoringSettings)
@@ -574,7 +647,9 @@ namespace SpeakerSync
             {
                 int sampleRate = 44100;
                 if (SampleRateCombo.SelectedItem is int sr) sampleRate = sr;
+                engine.RefreshOutputEndpointMappings();
                 engine.Start(inputIndex, outputs, sampleRate);
+                RefreshOutputDeviceVolumesFromSystem();
                 StartBtn.Content = "Stop";
                 SaveSettings();
             }
