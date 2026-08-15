@@ -1,0 +1,47 @@
+# Build outputs
+bin/
+obj/
+[Bb]uild/
+[Ll]ib/
+
+# Visual Studio / VS Code
+.vs/
+.vscode/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.pdb
+*.cache
+*.log
+
+# Rider / JetBrains
+.idea/
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# NuGet packages
+packages/
+*.nupkg
+*.snupkg
+
+# Secrets / local app data
+*.pfx
+*.pem
+*.key
+
+# Generated or temporary files
+*.tmp
+*.temp
+*.bak
+*.orig
+
+# Publish outputs
+publish/
+
+# App-specific runtime state
+settings.json

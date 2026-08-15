@@ -171,10 +171,8 @@ namespace SpeakerSync
             AutoSyncBtn.Content = "Auto Sync";
             CalibrationStatusText.Text = "Calibration stopped.";
 
-            if (wasAudioRunningBeforeCalibration)
-            {
-                RestartAudioIfNeeded();
-            }
+            // Keep the routed input audio alive while calibrating so the user can still hear
+            // the system under test and compare that signal against the calibration beep.
         }
 
         private void Window_KeyDown(object sender, KeyEventArgs e)
@@ -258,14 +256,12 @@ namespace SpeakerSync
             }
 
             wasAudioRunningBeforeCalibration = IsAudioRunning();
-            if (wasAudioRunningBeforeCalibration)
-            {
-                engine.Stop();
-            }
 
+            // Do not stop the active routed audio while calibrating. The user needs to keep hearing
+            // the live input signal while the calibration beep plays on the target output device.
             AutoSyncBtn.Content = "Stop Calibration";
             StartBtn.IsEnabled = true;
-            StartBtn.Content = "Start";
+            StartBtn.Content = wasAudioRunningBeforeCalibration ? "Stop" : "Start";
 
             lock (calibrationLock)
             {
