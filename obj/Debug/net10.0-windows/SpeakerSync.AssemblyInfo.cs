@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("SpeakerSync")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+5b4bac972eac18efc5a619bc7b37f38ef8518d20")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+520acc763f6bf499eb01488c8043281e1e4a12cc")]
 [assembly: System.Reflection.AssemblyProductAttribute("SpeakerSync")]
 [assembly: System.Reflection.AssemblyTitleAttribute("SpeakerSync")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
