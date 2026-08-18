@@ -147,7 +147,7 @@ namespace SpeakerSync
                 var lbl = new TextBlock { Text = outputs[actualOutputIndex], VerticalAlignment = VerticalAlignment.Center, Width = 300, Foreground = System.Windows.Media.Brushes.LightGray };
 
                 int sliderValue = Math.Clamp(savedSettings.VolumePercent, 0, 200);
-                var volSlider = new Slider { Width = 80, Minimum = 0, Maximum = 200, Value = sliderValue, Tag = actualOutputIndex, Margin = new Thickness(8,0,4,0) };
+                var volSlider = new Slider { Width = 80, Minimum = 0, Maximum = 200, Value = sliderValue, Tag = actualOutputIndex, Margin = new Thickness(8,10,4,0) };
                 volSlider.ValueChanged += Volume_ValueChanged;
                 var volTextBox = new TextBox { Width = 50, Text = sliderValue.ToString(), Tag = $"vol_tb_{actualOutputIndex}", Margin = new Thickness(0,0,4,0) };
                 volTextBox.LostFocus += VolumeTextBox_LostFocus;
